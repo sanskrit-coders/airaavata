@@ -204,9 +204,9 @@ impl BabylonDictionary {
                     for vibhakti in Vibhakti::iter() {
                         let mut vachana_entries = Vec::new();
                         for vacana in Vacana::iter() {
-                            let pada = Subanta::builder().pratipadika(basic_pratipadika.clone()).linga(linga).vibhakti(vibhakti).vacana(vacana).build();
+                            let pada = Subanta::builder().pratipadika(basic_pratipadika.pratipadika()).linga(*linga).vibhakti(vibhakti).vacana(vacana).build();
 
-                            let prakriyas = self.v.derive_subantas(pada);
+                            let prakriyas = self.v.derive_subantas(&pada.unwrap());
                             let mut forms = Vec::new();
 
                             for prakriya in prakriyas {
@@ -310,8 +310,8 @@ impl BabylonDictionary {
 
                 for taddhita in Taddhita::iter() {
                     let anga =
-                        Taddhitanta::builder().pratipadika(praatipadika.clone()). taddhita(taddhita).build();
-                    let prakriyas = self.v.derive_taddhitantas(anga);
+                        Taddhitanta::builder().pratipadika(Pratipadika::from(basic_pratipadika.pratipadika())). taddhita(taddhita).build();
+                    let prakriyas = self.v.derive_taddhitantas(&anga.unwrap());
 
                     if !prakriyas.is_empty() {
                         let derivatives: Vec<String> =
@@ -383,7 +383,7 @@ impl BabylonDictionary {
                 let progress_bar = ProgressBar::new(dhatu_entries.len() as u64);
                 progress_bar.set_message(format!("Dhaatus {}", dict_name));
 
-                for dhatu_entry in dhatu_entries.iter() {
+                for dhatu_entry in dhatu_entries {
                     let mut headwords_in = OrderedSet::new();
                     let aupadeshika = dev(&dhatu_entry.dhatu.aupadeshika);
 
