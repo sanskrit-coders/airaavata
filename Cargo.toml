@@ -7,5 +7,13 @@ edition = "2021"
 clap = "4.5.26"
 csv = "1.3.1"
 serde = "1.0.217"
+#vidyut-lipi = { git = "https://github.com/sanskrit-coders/vidyut-lipi.git" } 
+#vidyut-prakriya = { git = "https://github.com/sanskrit-coders/vidyut-prakriya.git"}
 vidyut-lipi = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-lipi" }
 vidyut-prakriya = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-prakriya" }
+vidyut-kosha = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-kosha" }
+vidyut-cheda = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-cheda" }
+vidyut-chandas = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-chandas" }
+env_logger = "0.11.6"
+log = "0.4.22"
+indicatif = "0.17.9"
