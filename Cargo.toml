@@ -1,0 +1,11 @@
+[package]
+name = "airaavata"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "4.5.26"
+csv = "1.3.1"
+serde = "1.0.217"
+vidyut-lipi = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-lipi" }
+vidyut-prakriya = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-prakriya" }
