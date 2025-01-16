@@ -17,3 +17,5 @@ vidyut-chandas = { path = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-chanda
 env_logger = "0.11.6"
 log = "0.4.22"
 indicatif = "0.17.9"
+regex = "1.11.1"
+lazy_static = "1.5.0"
