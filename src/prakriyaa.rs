@@ -1,30 +1,32 @@
+use crate::util::{dev, slp};
 use std::path::Path;
 use std::sync::Arc;
+use log::error;
+use vidyut_kosha::entries::{PadaEntry, SubantaEntry};
 use vidyut_kosha::Kosha;
-use vidyut_prakriya::args::{Dhatu, DhatuPada, Gana, Lakara, Prayoga, Purusha, Tinanta, Vacana};
+use vidyut_prakriya::args::{Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Pratipadika, Prayoga, Purusha, Sanadi, Subanta, Tinanta, Vacana};
+use vidyut_prakriya::args::BaseKrt::kta;
 use vidyut_prakriya::Vyakarana;
 
 struct PrakriyaHelper {
     v: Arc<Vyakarana>,
     kosha: Arc<Kosha>,
-    data: Arc<Data>,
 }
 
 impl PrakriyaHelper {
     fn new(data_path: &Path, kosha_path: &Path) -> Self {
-        let data = Arc::new(Data::new(data_path));
-        let kosha = Arc::new(Kosha::new(kosha_path));
+        let kosha = Arc::new(Kosha::new(kosha_path).unwrap());
         let v = Arc::new(Vyakarana::new());
 
-        Self { v, kosha, data }
+        Self { v, kosha}
     }
 
     fn print_prakriya(&self, shabda: impl Into<String>) {
         let shabda = shabda.into();
         let entries = if shabda.chars().next().map_or(false, |c| c.is_ascii()) {
-            self.kosha.get(&shabda)
+            self.kosha.get_all(&shabda)
         } else {
-            self.kosha.get(&self.slp(&shabda))
+            self.kosha.get_all(&slp(&shabda))
         };
 
         if entries.is_empty() {
@@ -33,7 +35,11 @@ impl PrakriyaHelper {
         }
 
         for entry in entries {
-            let prakriyas = self.v.derive(entry);
+            let prakriyas = match entry {
+                PadaEntry::Subanta(s) => self.v.derive_subantas(Subanta::new(s.pratipadika_entry(), s.)),
+                _ => panic!("Expected BasicPratipadika")
+            };
+
             for p in prakriyas {
                 let mut steps = Vec::new();
                 for step in p.history() {
@@ -79,8 +85,8 @@ impl PrakriyaHelper {
     }
 
     fn derive_and_print_krdanta(&self) {
-        let spastaya = Dhatu::nama(Pratipadika::basic(&self.slp("स्पष्ट")), Some(Sanadi::Ric));
-        let krdanta = Pratipadika::krdanta(spastaya, Krt::Kta);
+        let spastaya = Dhatu::nama(Pratipadika::Basic(&slp("स्पष्ट")), Some(Sanadi::Ric));
+        let krdanta = Krdanta::builder().dhatu(spastaya).krt(Krt::Base(kta)).build();
         self.print_prakriya(krdanta);
     }
 }

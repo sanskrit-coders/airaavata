@@ -8,9 +8,10 @@ use std::sync::Arc;
 use vidyut_kosha::{Kosha};
 use vidyut_kosha::entries::{BasicPratipadikaEntry, PratipadikaEntry};
 use vidyut_lipi::{transliterate, Scheme};
-use vidyut_prakriya::args::{Dhatu, DhatuPada, Gana, Krt, Lakara, Pada, Pratipadika, Prayoga, Purusha, Sanadi, Subanta, Taddhita, Tinanta, Vacana, Vibhakti};
+use vidyut_prakriya::args::{BaseKrt, Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Pada, Pratipadika, Prayoga, Purusha, Sanadi, Subanta, Taddhita, Taddhitanta, Tinanta, Vacana, Vibhakti};
 use vidyut_prakriya::{Dhatupatha, Vyakarana};
-use vidyut_prakriya::args::Pratipadika::Taddhitanta;
+
+use crate::util::{dev, slp};
 
 // Equivalent to OrderedSet - using HashSet for now, can be replaced with IndexSet if ordering is critical
 type OrderedSet<T> = HashSet<T>;
@@ -49,23 +50,15 @@ struct Definition {
 
 struct BabylonDictionary {
     v: Vyakarana,
-    kosha: Kosha,
-    dhatus: Dhatupatha,
+    kosha: Kosha
 }
 
 impl BabylonDictionary {
-    fn new(data_path: &Path, kosha_path: &Path) -> Self {
-        let dhatus = match Dhatupatha::from_path( "data/dhatupatha.tsv") {
-            Ok(res) => res,
-            Err(err) => {
-                println!("{}", err);
-                std::process::exit(1);
-            }
-        };
-        let kosha = Kosha::new(kosha_path);
+    fn new(kosha_path: &Path) -> Self {
+        let kosha = Kosha::new(kosha_path).unwrap();
         let v = Vyakarana::new();
 
-        Self { v, kosha., dhatus }
+        Self { v, kosha }
     }
 
 
@@ -73,21 +66,21 @@ impl BabylonDictionary {
         &self,
         entry_head: String,
         mut headwords_in: OrderedSet<String>,
-        sanaadyanta: Dhatu,
+        sanaadyanta: Dhatu, prayoga: Prayoga
     ) -> Vec<Definition> {
         let mut entry = format!("{}<BR>", entry_head);
 
-        for krt in Krt::iter() {
-            let anga = Pratipadika::krdanta(sanaadyanta.clone(), krt);
-            let prakriyas = self.v.derive(anga);
+        for krt in BaseKrt::iter() {
+            let anga = Krdanta::builder().dhatu(sanaadyanta.clone()).krt(krt).build();
+            let prakriyas = self.v.derive_krdantas(&anga.unwrap());
 
             for p in prakriyas {
-                headwords_in.insert(self.dev(p.text()));
+                headwords_in.insert(dev(p.text()));
                 entry.push_str(&format!(
                     "{}+{} = {}<BR>",
-                    self.dev("+"),
-                    self.dev(&krt.to_string()),
-                    self.dev(p.text())
+                    dev("+"),
+                    dev(&krt.to_string()),
+                    dev(p.text())
                 ));
             }
         }
@@ -119,11 +112,11 @@ impl BabylonDictionary {
                     let mut vacana_forms = Vec::new();
 
                     for vacana in Vacana::iter() {
-                        let pada = Tinanta::builder().dhatu(sanaadyanta.clone()).prayoga(prayoga).pada(*parasmai_mode).lakara(lakara).purusha(purusha).vacana(vacana);
+                        let pada = Tinanta::builder().dhatu(sanaadyanta.clone()).prayoga(prayoga).pada(*parasmai_mode).lakara(lakara).purusha(purusha).vacana(vacana).build();
 
-                        let prakriyas = self.v.derive_tinantas(pada);
+                        let prakriyas = self.v.derive_tinantas(&pada.unwrap());
                         let forms: Vec<String> =
-                            prakriyas.iter().map(|p| self.dev(p.text())).collect();
+                            prakriyas.iter().map(|p| dev(p.text())).collect();
 
                         pada_headwords.extend(forms.clone());
                         vacana_forms.push(forms.join("/ "));
@@ -135,11 +128,11 @@ impl BabylonDictionary {
 
                 if !pada_headwords.is_empty() {
                     let mut table_head =
-                        format!("{} {}", entry_head, self.dev(&lakara.to_string()));
+                        format!("{} {}", entry_head, dev(&lakara.to_string()));
                     if prayoga == Prayoga::Karmani {
                         table_head.push_str(" अकर्तरि<BR><BR>");
                     } else {
-                        table_head.push_str(&format!(" {}", self.dev(&parasmai_mode.to_string())));
+                        table_head.push_str(&format!(" {}", dev(&parasmai_mode.to_string())));
                     }
                     table_lines.push(table_head);
                     table_lines.push(lines.join("<BR>--<BR>"));
@@ -191,15 +184,19 @@ impl BabylonDictionary {
                 if matches!(praatipadika, PratipadikaEntry::Krdanta(_)) {
                     continue;
                 }
-
-                let praatipadika_str = self.dev(&praatipadika.pratipadika().text());
+                let basic_pratipadika = match praatipadika {
+                    PratipadikaEntry::Basic(basic) => basic,
+                    _ => panic!("Expected BasicPratipadika")
+                };                
+                
+                let praatipadika_str = dev(&basic_pratipadika.pratipadika().text());
                 if !(praatipadika_str >= border_start.to_string()
                     && praatipadika_str < border_end.to_string())
                 {
                     continue;
                 }
 
-                for linga in praatipadika.lingas() {
+                for linga in basic_pratipadika.lingas() {
                     let mut headwords = OrderedSet::new();
                     headwords.insert(praatipadika_str.clone());
                     let mut lines = Vec::new();
@@ -207,13 +204,13 @@ impl BabylonDictionary {
                     for vibhakti in Vibhakti::iter() {
                         let mut vachana_entries = Vec::new();
                         for vacana in Vacana::iter() {
-                            let pada = Subanta::builder().pratipadika(praatipadika).linga(linga).vibhakti(vibhakti).vacana(vacana).build();
+                            let pada = Subanta::builder().pratipadika(basic_pratipadika.clone()).linga(linga).vibhakti(vibhakti).vacana(vacana).build();
 
                             let prakriyas = self.v.derive_subantas(pada);
                             let mut forms = Vec::new();
 
                             for prakriya in prakriyas {
-                                let pada_str = self.dev(prakriya.text());
+                                let pada_str = dev(prakriya.text());
                                 headwords.insert(pada_str.clone());
                                 forms.push(pada_str);
                             }
@@ -223,35 +220,35 @@ impl BabylonDictionary {
                         };
                         lines.push(vachana_entries.join("; "));
                     }
+                    let linga_str = dev(&linga.to_string());
+                    let meaning = format!(
+                        "{} {}<BR>{}",
+                        praatipadika_str,
+                        &linga_str[..4.min(linga_str.len())],
+                        lines.join("<BR>")
+                    );
+
+                    definitions.push(Definition {
+                        headwords: headwords.into_iter().collect(),
+                        meaning,
+                    });
                 }
 
-                let linga_str = self.dev(&linga.to_string());
-                let meaning = format!(
-                    "{} {}<BR>{}",
-                    praatipadika_str,
-                    &linga_str[..4.min(linga_str.len())],
-                    lines.join("<BR>")
-                );
-
-                definitions.push(Definition {
-                    headwords: headwords.into_iter().collect(),
-                    meaning,
-                });
+                progress_bar.tick();
             }
 
-            progress_bar.tick();
+            progress_bar.finish_with_message(format!(
+                "Got {} definitions for {}",
+                definitions.len(),
+                dict_name
+            ));
+
+            let dest_file_path = dest_dir
+                .join(&dict_name)
+                .join(format!("{}.babylon", dict_name));
+            self.dump_babylon(&dest_file_path, &definitions);
         }
 
-        progress_bar.finish_with_message(format!(
-            "Got {} definitions for {}",
-            definitions.len(),
-            dict_name
-        ));
-
-        let dest_file_path = dest_dir
-            .join(&dict_name)
-            .join(format!("{}.babylon", dict_name));
-        self.dump_babylon(&dest_file_path, &definitions);
     }
 
     fn dump_taddhitaantas(&self, dest_dir: &Path, overwrite: bool) {
@@ -295,8 +292,12 @@ impl BabylonDictionary {
                 if matches!(praatipadika, PratipadikaEntry::Krdanta(_)) {
                     continue;
                 }
+                let basic_pratipadika = match praatipadika {
+                    PratipadikaEntry::Basic(basic) => basic,
+                    _ => panic!("Expected BasicPratipadika")
+                };
 
-                let praatipadika_str = self.dev(&praatipadika.pratipadika.text());
+                let praatipadika_str = dev(&basic_pratipadika.pratipadika().text());
                 if !(praatipadika_str >= border_start.to_string()
                     && praatipadika_str < border_end.to_string())
                 {
@@ -308,29 +309,25 @@ impl BabylonDictionary {
                 let mut lines = Vec::new();
 
                 for taddhita in Taddhita::iter() {
-                    if taddhita.to_string() == "YiW" {
-                        continue;
-                    }
-
                     let anga =
-                        Taddhitanta(praatipadika.pratipadika().clone(), taddhita);
+                        Taddhitanta::builder().pratipadika(praatipadika.clone()). taddhita(taddhita).build();
                     let prakriyas = self.v.derive_taddhitantas(anga);
 
                     if !prakriyas.is_empty() {
                         let derivatives: Vec<String> =
-                            prakriyas.iter().map(|p| self.dev(p.text())).collect();
+                            prakriyas.iter().map(|p| dev(p.text())).collect();
 
                         headwords.extend(derivatives.clone());
                         lines.push(format!(
                             "+ {} = {}",
-                            self.dev(&taddhita.to_string()),
+                            dev(&taddhita.to_string()),
                             derivatives.join(", ")
                         ));
                     }
                 }
 
-                let linga_str = self.dev(
-                    &praatipadika
+                let linga_str = dev(
+                    &basic_pratipadika
                         .lingas()
                         .iter()
                         .map(|l| l.to_string())
@@ -362,9 +359,9 @@ impl BabylonDictionary {
         &self,
         dest_dir: &Path,
         sanaadi_dict: &HashMap<&str, Vec<Sanadi>>,
-        make_entry: fn(&Self, String, OrderedSet<String>, Dhatu, Prayoga) -> Vec<Definition>,
+        make_entry: fn(&BabylonDictionary, String, OrderedSet<String>, Dhatu, Prayoga) -> Vec<Definition>,
     ) {
-        let dhatu_entries = self.data.load_dhatu_entries();
+        let dhatu_entries = self.kosha.dhatus();
 
         for (dict_name, sanadi) in sanaadi_dict {
             let prayogas = if sanaadi_dict == &*SANAADI_DICT_KRDANTA {
@@ -388,7 +385,7 @@ impl BabylonDictionary {
 
                 for dhatu_entry in dhatu_entries.iter() {
                     let mut headwords_in = OrderedSet::new();
-                    let aupadeshika = self.dev(&dhatu_entry.dhatu.aupadeshika);
+                    let aupadeshika = dev(&dhatu_entry.dhatu.aupadeshika);
 
                     // Add variations of aupadeshika
                     headwords_in.insert(aupadeshika.clone());
@@ -411,8 +408,8 @@ impl BabylonDictionary {
                     );
 
                     for p in self.v.derive_tinantas(dhatu_entry.dhatu.clone()) {
-                        let dhatu_form = self.dev(p.text());
-                        if self.dev(&dhatu_entry.dhatu.aupadeshika) != dhatu_form {
+                        let dhatu_form = dev(p.text());
+                        if dev(&dhatu_entry.dhatu.aupadeshika) != dhatu_form {
                             dhatu_str.push_str(&format!(" {}", dhatu_form));
                             headwords_in.insert(dhatu_form);
                         }
@@ -426,7 +423,7 @@ impl BabylonDictionary {
                     let mut sanaadi_str = String::new();
 
                     for p in self.v.derive_tinantas(sanaadyanta.clone()) {
-                        let sanaadyanta_str = self.dev(p.text());
+                        let sanaadyanta_str = dev(p.text());
                         headwords_in.insert(sanaadyanta_str.clone());
                         if !sanadi.is_empty() {
                             sanaadi_str = format!(
@@ -441,7 +438,7 @@ impl BabylonDictionary {
                         }
                     }
 
-                    let entry_head = self.dev(&format!("{}{}", dhatu_str, sanaadi_str));
+                    let entry_head = dev(&format!("{}{}", dhatu_str, sanaadi_str));
                     let mut definitions_d =
                         make_entry(self, entry_head, headwords_in, sanaadyanta, prayoga);
                     definitions.append(&mut definitions_d);
@@ -483,14 +480,13 @@ fn main() {
     env_logger::init();
 
     let dict = BabylonDictionary::new(
-        Path::new("/home/vvasuki/gitland/ambuda-org/vidyut-latest/prakriya"),
         Path::new("/home/vvasuki/gitland/ambuda-org/vidyut-latest/kosha"),
     );
 
     // Uncomment the functions you want to run
-    // dict.dump_sanaadi_dicts(
-    //     Path::new("/home/vvasuki/gitland/indic-dict/dicts/stardict-sanskrit-vyAkaraNa/kRdanta/vidyut/"),
-    //     &SANAADI_DICT_KRDANTA,
-    //     BabylonDictionary::get_krdanta_entry
-    // );
+    dict.dump_sanaadi_dicts(
+        Path::new("/home/vvasuki/gitland/indic-dict/dicts/stardict-sanskrit-vyAkaraNa/kRdanta/vidyut/"),
+        &SANAADI_DICT_KRDANTA,
+        BabylonDictionary::get_krdanta_entry
+    );
 }
