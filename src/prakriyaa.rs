@@ -4,7 +4,7 @@ use std::sync::Arc;
 use log::error;
 use vidyut_kosha::entries::{PadaEntry, SubantaEntry};
 use vidyut_kosha::Kosha;
-use vidyut_prakriya::args::{Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Pratipadika, Prayoga, Purusha, Sanadi, Subanta, Tinanta, Vacana};
+use vidyut_prakriya::args::{Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Muladhatu, Pratipadika, Prayoga, Purusha, Sanadi, Subanta, Tinanta, Vacana};
 use vidyut_prakriya::args::BaseKrt::kta;
 use vidyut_prakriya::Vyakarana;
 
@@ -73,7 +73,7 @@ impl PrakriyaHelper {
 
     fn derive_and_print_tinanta(&self) {
         let pada = Tinanta::builder() {
-            dhatu: Dhatu::mula("BU", Gana::Bhvadi),
+            dhatu: Muladhatu("BU", Gana::Bhvadi),
             prayoga: Prayoga::Kartari,
             lakara: Lakara::Lat,
             purusha: Purusha::Prathama,
