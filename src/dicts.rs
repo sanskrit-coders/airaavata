@@ -386,7 +386,7 @@ impl BabylonDictionary {
                 for dhatu_entry in dhatu_entries {
                     let mut headwords_in = OrderedSet::new();
                     let dhaatu = dhatu_entry.dhatu();
-                    let aupadeshika = dev(dhaatu.aupadeshika());
+                    let aupadeshika = dev(dhaatu.aupadeshika().unwrap());
 
                     // Add variations of aupadeshika
                     headwords_in.insert(aupadeshika.clone());
@@ -405,12 +405,12 @@ impl BabylonDictionary {
 
                     let mut dhatu_str = format!(
                         "{} {} ({:?})",
-                        dhaatu.aupadeshika(), dhatu_entry.artha, dhaatu.gana()
+                        dhaatu.aupadeshika().unwrap(), dhatu_entry.artha, dhaatu.gana()
                     );
 
-                    for p in self.v.derive_tinantas(dhatu_entry.dhatu().clone()) {
+                    for p in self.v.derive_dhatus(&dhatu_entry.dhatu().clone()) {
                         let dhatu_form = dev(p.text());
-                        if dev(dhaatu.aupadeshika()) != dhatu_form {
+                        if dev(dhaatu.aupadeshika().unwrap()) != dhatu_form {
                             dhatu_str.push_str(&format!(" {}", dhatu_form));
                             headwords_in.insert(dhatu_form);
                         }
@@ -423,7 +423,7 @@ impl BabylonDictionary {
                     let sanaadyanta = dhaatu.with_sanadi(sanadi);
                     let mut sanaadi_str = String::new();
 
-                    for p in self.v.derive_tinantas(sanaadyanta.clone()) {
+                    for p in self.v.derive_dhatus(&sanaadyanta.clone()) {
                         let sanaadyanta_str = dev(p.text());
                         headwords_in.insert(sanaadyanta_str.clone());
                         if !sanadi.is_empty() {
