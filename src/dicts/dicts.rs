@@ -6,12 +6,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use vidyut_kosha::{Kosha};
-use vidyut_kosha::entries::{BasicPratipadikaEntry, PratipadikaEntry};
+use vidyut_kosha::entries::{BasicPratipadikaEntry, DhatuEntry, PratipadikaEntry};
 use vidyut_lipi::{transliterate, Scheme};
 use vidyut_prakriya::args::{BaseKrt, Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Pada, Pratipadika, Prayoga, Purusha, Sanadi, Subanta, Taddhita, Taddhitanta, Tinanta, Vacana, Vibhakti};
 use vidyut_prakriya::{Dhatupatha, Vyakarana};
 
 use crate::util::{dev, slp};
+use crate::prakriyaa::{PrakriyaHelper};
 
 // Equivalent to OrderedSet - using HashSet for now, can be replaced with IndexSet if ordering is critical
 type OrderedSet<T> = HashSet<T>;
@@ -49,16 +50,12 @@ struct Definition {
 }
 
 struct BabylonDictionary {
-    v: Vyakarana,
-    kosha: Kosha
+    p: PrakriyaHelper,
 }
 
 impl BabylonDictionary {
-    fn new(kosha_path: &Path) -> Self {
-        let kosha = Kosha::new(kosha_path).unwrap();
-        let v = Vyakarana::new();
-
-        Self { v, kosha }
+    fn new(p: PrakriyaHelper) -> Self {
+        Self { p }
     }
 
 
@@ -72,7 +69,7 @@ impl BabylonDictionary {
 
         for krt in BaseKrt::iter() {
             let anga = Krdanta::builder().dhatu(sanaadyanta.clone()).krt(krt).build();
-            let prakriyas = self.v.derive_krdantas(&anga.unwrap());
+            let prakriyas = self.p.v.derive_krdantas(&anga.unwrap());
 
             for p in prakriyas {
                 headwords_in.insert(dev(p.text()));
@@ -114,7 +111,7 @@ impl BabylonDictionary {
                     for vacana in Vacana::iter() {
                         let pada = Tinanta::builder().dhatu(sanaadyanta.clone()).prayoga(prayoga).pada(*parasmai_mode).lakara(lakara).purusha(purusha).vacana(vacana).build();
 
-                        let prakriyas = self.v.derive_tinantas(&pada.unwrap());
+                        let prakriyas = self.p.v.derive_tinantas(&pada.unwrap());
                         let forms: Vec<String> =
                             prakriyas.iter().map(|p| dev(p.text())).collect();
 
@@ -180,7 +177,7 @@ impl BabylonDictionary {
             let progress_bar = ProgressBar::new_spinner();
             progress_bar.set_message(format!("Processing {}", dict_name));
 
-            for praatipadika in self.kosha.pratipadikas() {
+            for praatipadika in self.p.kosha.pratipadikas() {
                 if matches!(praatipadika, PratipadikaEntry::Krdanta(_)) {
                     continue;
                 }
@@ -206,7 +203,7 @@ impl BabylonDictionary {
                         for vacana in Vacana::iter() {
                             let pada = Subanta::builder().pratipadika(basic_pratipadika.pratipadika()).linga(*linga).vibhakti(vibhakti).vacana(vacana).build();
 
-                            let prakriyas = self.v.derive_subantas(&pada.unwrap());
+                            let prakriyas = self.p.v.derive_subantas(&pada.unwrap());
                             let mut forms = Vec::new();
 
                             for prakriya in prakriyas {
@@ -288,7 +285,7 @@ impl BabylonDictionary {
             let progress_bar = ProgressBar::new_spinner();
             progress_bar.set_message(format!("Processing {}", dict_name));
 
-            for praatipadika in self.kosha.pratipadikas() {
+            for praatipadika in self.p.kosha.pratipadikas() {
                 if matches!(praatipadika, PratipadikaEntry::Krdanta(_)) {
                     continue;
                 }
@@ -311,7 +308,7 @@ impl BabylonDictionary {
                 for taddhita in Taddhita::iter() {
                     let anga =
                         Taddhitanta::builder().pratipadika(Pratipadika::from(basic_pratipadika.pratipadika())). taddhita(taddhita).build();
-                    let prakriyas = self.v.derive_taddhitantas(&anga.unwrap());
+                    let prakriyas = self.p.v.derive_taddhitantas(&anga.unwrap());
 
                     if !prakriyas.is_empty() {
                         let derivatives: Vec<String> =
@@ -361,7 +358,7 @@ impl BabylonDictionary {
         sanaadi_dict: &HashMap<&str, Vec<Sanadi>>,
         make_entry: fn(&BabylonDictionary, String, OrderedSet<String>, Dhatu, Prayoga) -> Vec<Definition>,
     ) {
-        let dhatu_entries = self.kosha.dhatus();
+        let dhatu_entries: Vec<DhatuEntry> = self.p.kosha.dhatus().collect();
 
         for (dict_name, sanadi) in sanaadi_dict {
             let prayogas = if sanaadi_dict == &*SANAADI_DICT_KRDANTA {
@@ -408,7 +405,7 @@ impl BabylonDictionary {
                         dhaatu.aupadeshika().unwrap(), dhatu_entry.artha, dhaatu.gana()
                     );
 
-                    for p in self.v.derive_dhatus(&dhatu_entry.dhatu().clone()) {
+                    for p in self.p.v.derive_dhatus(&dhatu_entry.dhatu().clone()) {
                         let dhatu_form = dev(p.text());
                         if dev(dhaatu.aupadeshika().unwrap()) != dhatu_form {
                             dhatu_str.push_str(&format!(" {}", dhatu_form));
@@ -423,7 +420,7 @@ impl BabylonDictionary {
                     let sanaadyanta = dhaatu.with_sanadi(sanadi);
                     let mut sanaadi_str = String::new();
 
-                    for p in self.v.derive_dhatus(&sanaadyanta.clone()) {
+                    for p in self.p.v.derive_dhatus(&sanaadyanta.clone()) {
                         let sanaadyanta_str = dev(p.text());
                         headwords_in.insert(sanaadyanta_str.clone());
                         if !sanadi.is_empty() {
@@ -431,7 +428,7 @@ impl BabylonDictionary {
                                 " + {} = {}",
                                 sanadi
                                     .iter()
-                                    .map(|x| x.name())
+                                    .map(|x| x.as_str())
                                     .collect::<Vec<_>>()
                                     .join("+ "),
                                 sanaadyanta_str
@@ -481,7 +478,7 @@ fn main() {
     env_logger::init();
 
     let dict = BabylonDictionary::new(
-        Path::new("/home/vvasuki/gitland/ambuda-org/vidyut-latest/kosha"),
+        PrakriyaHelper::new(Path::new("/home/vvasuki/gitland/ambuda-org/vidyut-latest/")),
     );
 
     // Uncomment the functions you want to run
