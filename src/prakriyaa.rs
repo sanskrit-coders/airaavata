@@ -46,28 +46,28 @@ impl PrakriyaHelper {
         for p in prakriyas {
             let mut steps = Vec::new();
             for step in p.history() {
-                let sutra_text = self
-                    .data
-                    .get_sutra(&step.source, &step.rule().code())
-                    .map(|s| dev(&s.text))
-                    .unwrap_or_else(|| "(??)".to_string());
+                // `step.result()` contains all of the *terms* that are part of this step. These
+                // include dhatus, agamas, pratyayas, etc.
+                //
+                // Here, we create a single string to show all of the results from each term.
+                let terms: Vec<_> = step
+                  .result()
+                  .iter()
+                  .map(|x| x.text())
+                  .filter(|x| !x.is_empty())
+                  .collect();
 
                 let url = format!(
                     "[A](https://ashtadhyayi.github.io/suutra/{}/{}/)",
                     &step.rule().code()[..3],
                     step.rule().code()
                 );
-                let joined_result = step
-                    .result()
-                    .iter()
-                    .map(|x| x.text())
-                    .collect::<Vec<&str>>()
-                    .join(",");
+                let sutra_text = "???";
                 let detail = format!(
                     "{} {} → {} {} {}",
                     dev(&step.rule().code()), // TODO: get type
                     step.rule().code(),
-                    dev(joined_result),
+                    dev(terms.join("/ ")),
                     sutra_text,
                     url
                 );
