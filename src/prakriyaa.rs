@@ -1,11 +1,14 @@
 use crate::util::{dev, slp};
+use log::{error, info};
 use std::path::Path;
 use std::sync::Arc;
-use log::{error, info};
 use vidyut_kosha::entries::{PadaEntry, SubantaEntry};
 use vidyut_kosha::Kosha;
-use vidyut_prakriya::args::{Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Muladhatu, Pratipadika, Prayoga, Purusha, Sanadi, Slp1String, Subanta, Tinanta, Vacana};
 use vidyut_prakriya::args::BaseKrt::kta;
+use vidyut_prakriya::args::{
+    Dhatu, DhatuPada, Gana, Krdanta, Krt, Lakara, Muladhatu, Pratipadika, Prayoga, Purusha, Sanadi,
+    Slp1String, Subanta, Tinanta, Vacana,
+};
 use vidyut_prakriya::{Dhatupatha, Prakriya, Vyakarana};
 
 pub(crate) struct PrakriyaHelper {
@@ -32,7 +35,11 @@ impl PrakriyaHelper {
                 std::process::exit(1);
             }
         };
-        Self { v, kosha, dhAtupATha}
+        Self {
+            v,
+            kosha,
+            dhAtupATha,
+        }
     }
 
     fn show_prakriya(&self, prakriyas: Vec<Prakriya>) {
@@ -50,7 +57,12 @@ impl PrakriyaHelper {
                     &step.rule().code()[..3],
                     step.rule().code()
                 );
-                let joined_result = step.result().iter().map(|x| x.text()).collect::<Vec<&str>>().join(",");
+                let joined_result = step
+                    .result()
+                    .iter()
+                    .map(|x| x.text())
+                    .collect::<Vec<&str>>()
+                    .join(",");
                 let detail = format!(
                     "{} {} → {} {} {}",
                     dev(&step.rule().code()), // TODO: get type
@@ -64,9 +76,8 @@ impl PrakriyaHelper {
 
             info!("## {}\n{}\n", dev(p.text()), steps.join("  \n"));
         }
-        
     }
-    
+
     fn look_up_and_derive(&self, shabda: impl Into<String>) {
         let shabda = shabda.into();
         let entries = if shabda.chars().next().map_or(false, |c| c.is_ascii()) {
@@ -82,19 +93,33 @@ impl PrakriyaHelper {
 
         for entry in entries {
             let prakriyas = match entry {
-                PadaEntry::Subanta(s) => self.v.derive_subantas(&Subanta::builder().pratipadika(s.pratipadika_entry()).vacana(s.vacana()).linga(s.linga()).vibhakti(s.vibhakti()).build().unwrap()),
-                _ => panic!("Expected BasicPratipadika")
+                PadaEntry::Subanta(s) => self.v.derive_subantas(
+                    &Subanta::builder()
+                        .pratipadika(s.pratipadika_entry())
+                        .vacana(s.vacana())
+                        .linga(s.linga())
+                        .vibhakti(s.vibhakti())
+                        .build()
+                        .unwrap(),
+                ),
+                _ => panic!("Expected BasicPratipadika"),
             };
-
         }
     }
 
     fn derive_and_print_prakriya(&self) {
-        let pada = Tinanta::builder().dhatu(Dhatu::mula(Slp1String::from("BU").unwrap(), Gana::Bhvadi)).prayoga(Prayoga::Kartari).pada( DhatuPada::Parasmaipada).lakara(Lakara::Lat).purusha(Purusha::Prathama).vacana(Vacana::Eka).build();
+        let pada = Tinanta::builder()
+            .dhatu(Dhatu::mula(Slp1String::from("BU").unwrap(), Gana::Bhvadi))
+            .prayoga(Prayoga::Kartari)
+            .pada(DhatuPada::Parasmaipada)
+            .lakara(Lakara::Lat)
+            .purusha(Purusha::Prathama)
+            .vacana(Vacana::Eka)
+            .build();
 
         // let spastaya = Dhatu::nama(Pratipadika::Basic(&slp("स्पष्ट")), Some(Sanadi::Ric));
         // let pada = Krdanta::builder().dhatu(spastaya).krt(Krt::Base(kta)).build();
- 
+
         // match pada  {
         //     Tinanta(t) => self.print_prakriya(t),
         //     Krdanta(t) => self.print_prakriya(t),
