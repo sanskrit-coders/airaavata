@@ -24,13 +24,13 @@ logging.basicConfig(
   format="%(levelname)s:%(asctime)s:%(module)s:%(lineno)d %(message)s")
 
 
-PRAKRIYA_BASE = "/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/prakriyAH"
+PRAKRIYA_DHATU = "/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/dhAtu-prakriyA/prakriyAH"
 
 
 v = Vyakarana()
 data = Data("/home/vvasuki/gitland/ambuda-org/vidyut-latest/prakriya")
 code_to_sutra = {(s.source, s.code): s.text for s in data.load_sutras()}
-kosha = Kosha("/home/vvasuki/gitland/ambuda-org/vidyut-latest/kosha")
+# kosha = Kosha("/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-data/data/build/vidyut-latest/kosha")
 
 
 def lookup_and_derive(shabda, type=None, out_file_path=None):
@@ -52,7 +52,7 @@ def lookup_and_derive(shabda, type=None, out_file_path=None):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         md_file = MdFile(file_path)
         md_file.dump_to_file(metadata={"title": result}, content=prakriya_str, dry_run=False)
-  pass
+  return prakriyaas
 
 
 def get_prakriyaa_str(prakriyas):
@@ -84,7 +84,7 @@ def derive_and_print_tinanta():
     purusha=Purusha.Prathama,
     vacana=Vacana.Eka,
   )
-  lookup_and_derive(pada, out_file_path=os.path.join(PRAKRIYA_BASE, "tiNantAni"))
+  lookup_and_derive(pada, out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"))
 
 
 def derive_and_print_subanta():
@@ -100,7 +100,91 @@ def derive_and_print_subanta():
     vibhakti=Vibhakti.Prathama,
     vacana=Vacana.Eka,
   )
-  lookup_and_derive(pada, out_file_path=os.path.join(PRAKRIYA_BASE, "subantAni"))
+  lookup_and_derive(pada, out_file_path=os.path.join(PRAKRIYA_DHATU, "subantAni"))
+
+
+def dump_subantas(dest_dir="/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/prAtipadika-prakriyA/sup/prakriyA"):
+  praatipadika_str = "सुमनस्"
+  # pratipadika=Pratipadika.nyap(slp(praatipadika_str))
+  pratipadika=Pratipadika.basic(slp(praatipadika_str))
+  content = ""
+  lingas = [Linga.Pum, Linga.Napumsaka, Linga.Stri]
+  for linga in lingas:
+    content = f"{content}\n\n## {praatipadika_str} {dev(str(linga))}"
+    for vibhakti in Vibhakti.choices():
+      for vacana in Vacana.choices():
+        prakriyaas = lookup_and_derive(shabda=Pada.Subanta(
+          pratipadika, linga, vibhakti, vacana
+        ))
+        for result, prakriya_str in prakriyaas.items():
+          content += f"\n\n{prakriya_str.replace('##', '###')}"
+  file_path = os.path.join(dest_dir, file_helper.get_storage_name(text=praatipadika_str) + ".md")
+  os.makedirs(os.path.dirname(file_path), exist_ok=True)
+  md_file = MdFile(file_path)
+  md_file.dump_to_file(metadata={"title": praatipadika_str}, content=content, dry_run=False)
+
+
+def dump_tinantas(dest_dir=os.path.join(PRAKRIYA_DHATU, "tiNantAni")):
+  dhaatu_str = "विदँ"
+  dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Adadi)
+  content = ""
+  prayogas = [Prayoga.Kartari, Prayoga.Karmani]
+  for prayoga in prayogas:
+    for lakara in Lakara.choices():
+      content = f"{content}\n\n## {dhaatu_str} {dev(str(lakara))} {dev(str(prayoga))}"
+      for parasmai_mode in [DhatuPada.Parasmaipada, DhatuPada.Atmanepada]:
+        pada = Pada.Tinanta(
+          dhatu=dhaatu,
+          prayoga=prayoga,
+          dhatu_pada=parasmai_mode,
+          lakara=lakara,
+          purusha=Purusha.Prathama,
+          vacana=Vacana.Bahu,
+        )
+        prakriyaas = lookup_and_derive(pada)
+        if len(prakriyaas) == 0:
+          continue
+        if prayoga != Prayoga.Karmani:
+          content = f"{content}\n\n### {dev(str(parasmai_mode))}"
+        for purusha in Purusha.choices():
+          content = f"{content}\n\n#### {dev(str(purusha))}"
+          for vacana in Vacana.choices():
+            content = f"{content}\n\n##### {dev(str(vacana))}"
+            pada = Pada.Tinanta(
+              dhatu=dhaatu,
+              prayoga=prayoga,
+              dhatu_pada=parasmai_mode,
+              lakara=lakara,
+              purusha=purusha,
+              vacana=vacana,
+            )
+            prakriyaas = lookup_and_derive(pada)
+            for result, prakriya_str in prakriyaas.items():
+              content += f"\n\n{prakriya_str.replace('##', '######')}"
+  title = f"{dhaatu_str} {dev(dhaatu.gana)}"
+  file_path = os.path.join(dest_dir, file_helper.get_storage_name(text=title) + ".md")
+  os.makedirs(os.path.dirname(file_path), exist_ok=True)
+  md_file = MdFile(file_path)
+  md_file.dump_to_file(metadata={"title": title}, content=content, dry_run=False)
+
+
+def dump_kRdantas(dest_dir=os.path.join(PRAKRIYA_DHATU, "kRdantAni")):
+  dhaatu_str = "दा"
+  dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
+  content = ""
+  for kRt in Krt.choices():
+    anga = Pratipadika.krdanta(dhaatu, kRt)
+    prakriyaas = lookup_and_derive(anga)
+    if len(prakriyaas) == 0:
+      continue
+    content = f"{content}\n\n## {dhaatu_str} + {dev(str(kRt))}"
+    for result, prakriya_str in prakriyaas.items():
+      content += f"\n\n{prakriya_str.replace('##', '###')}"
+  title = f"{dhaatu_str} {dev(dhaatu.gana)}"
+  file_path = os.path.join(dest_dir, file_helper.get_storage_name(text=title) + ".md")
+  os.makedirs(os.path.dirname(file_path), exist_ok=True)
+  md_file = MdFile(file_path)
+  md_file.dump_to_file(metadata={"title": title}, content=content, dry_run=False)
 
 
 def derive_and_print_kRdanta():
@@ -112,6 +196,9 @@ def derive_and_print_kRdanta():
 if __name__ == '__main__':
   # derive_and_print_subanta()
   # derive_and_print_tinanta()
-  lookup_and_derive("चोरयति", out_file_path=os.path.join(PRAKRIYA_BASE, "tiNantAni"), type=PadaEntry.Tinanta)
+  # lookup_and_derive("वेदानि", out_file_path=os.path.join(PRAKRIYA_BASE, "tiNantAni"), type=PadaEntry.Tinanta)
+  # dump_subantas()
+  # dump_tinantas()
+  dump_kRdantas()
   pass
   
