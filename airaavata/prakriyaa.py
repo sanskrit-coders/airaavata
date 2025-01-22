@@ -25,12 +25,14 @@ logging.basicConfig(
 
 
 PRAKRIYA_DHATU = "/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/dhAtu-prakriyA/prakriyAH"
-
+DATA_PATH = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-data/data/build/vidyut-latest/"
 
 v = Vyakarana()
-data = Data("/home/vvasuki/gitland/ambuda-org/vidyut-latest/prakriya")
-code_to_sutra = {(s.source, s.code): s.text for s in data.load_sutras()}
+# data = Data("/home/vvasuki/gitland/ambuda-org/vidyut-latest/prakriya")
+prakriya_data = Data(os.path.join(DATA_PATH, "prakriya/data"))
+code_to_sutra = {(s.source, s.code): s.text for s in prakriya_data.load_sutras()}
 # kosha = Kosha("/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-data/data/build/vidyut-latest/kosha")
+kosha = Kosha(os.path.join(DATA_PATH, "kosha"))
 
 
 def lookup_and_derive(shabda, type=None, out_file_path=None):
@@ -60,10 +62,10 @@ def get_prakriyaa_str(prakriyas):
   for p in prakriyas:
     steps = []
     for step in p.history:
-      source = dev(step.source).replace('आस्ह्तद्ह्ययि', 'अष्टाध्यायी')
+      source = dev(step.source).replace('अष्टाध्यायी', 'अ')
       url = ""
-      if source == "अष्टाध्यायी":
-        sutra = dev(code_to_sutra.get((step.source, step.code), "(??)"))
+      sutra = dev(code_to_sutra.get((step.source, step.code), "(??)"))
+      if source == "अ":
         url = f"[A](https://ashtadhyayi.github.io/suutra/{step.code[:3]}/{step.code})"
       result = dev(','.join(step.result))
       detail = f"{source} {step.code} → {result} ({sutra} {url})"
@@ -124,9 +126,12 @@ def dump_subantas(dest_dir="/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAk
   md_file.dump_to_file(metadata={"title": praatipadika_str}, content=content, dry_run=False)
 
 
-def dump_tinantas(dest_dir=os.path.join(PRAKRIYA_DHATU, "tiNantAni")):
-  dhaatu_str = "विदँ"
-  dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Adadi)
+def dump_tinantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "tiNantAni")):
+  entries = [x for x in kosha.get(slp(ref_pada)) if isinstance(x, PadaEntry.Tinanta)]
+  dhaatu = entries[0].dhatu_entry.dhatu
+  dhaatu_str = dev(dhaatu.aupadeshika)
+  # dhaatu_str = "दाञ्"
+  # dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
   content = ""
   prayogas = [Prayoga.Kartari, Prayoga.Karmani]
   for prayoga in prayogas:
@@ -168,9 +173,12 @@ def dump_tinantas(dest_dir=os.path.join(PRAKRIYA_DHATU, "tiNantAni")):
   md_file.dump_to_file(metadata={"title": title}, content=content, dry_run=False)
 
 
-def dump_kRdantas(dest_dir=os.path.join(PRAKRIYA_DHATU, "kRdantAni")):
-  dhaatu_str = "दा"
-  dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
+def dump_kRdantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "kRdantAni")):
+  entries = [x for x in kosha.get(slp(ref_pada)) if isinstance(x, PadaEntry.Tinanta)]
+  dhaatu = entries[0].dhatu_entry.dhatu
+  dhaatu_str = dev(dhaatu.aupadeshika)
+  # dhaatu_str = "डुदाञ्"
+  # dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
   content = ""
   for kRt in Krt.choices():
     anga = Pratipadika.krdanta(dhaatu, kRt)
@@ -198,7 +206,7 @@ if __name__ == '__main__':
   # derive_and_print_tinanta()
   # lookup_and_derive("वेदानि", out_file_path=os.path.join(PRAKRIYA_BASE, "tiNantAni"), type=PadaEntry.Tinanta)
   # dump_subantas()
-  # dump_tinantas()
-  dump_kRdantas()
+  # dump_tinantas(ref_pada="ददातु")
+  dump_kRdantas(ref_pada="ददातु")
   pass
   
