@@ -175,24 +175,25 @@ def dump_tinantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "tiNantAni")):
 
 def dump_kRdantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "kRdantAni")):
   entries = [x for x in kosha.get(slp(ref_pada)) if isinstance(x, PadaEntry.Tinanta)]
-  dhaatu = entries[0].dhatu_entry.dhatu
-  dhaatu_str = dev(dhaatu.aupadeshika)
-  # dhaatu_str = "डुदाञ्"
-  # dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
-  content = ""
-  for kRt in Krt.choices():
-    anga = Pratipadika.krdanta(dhaatu, kRt)
-    prakriyaas = lookup_and_derive(anga)
-    if len(prakriyaas) == 0:
-      continue
-    content = f"{content}\n\n## {dhaatu_str} + {dev(str(kRt))}"
-    for result, prakriya_str in prakriyaas.items():
-      content += f"\n\n{prakriya_str.replace('##', '###')}"
-  title = f"{dhaatu_str} {dev(dhaatu.gana)}"
-  file_path = os.path.join(dest_dir, file_helper.get_storage_name(text=title) + ".md")
-  os.makedirs(os.path.dirname(file_path), exist_ok=True)
-  md_file = MdFile(file_path)
-  md_file.dump_to_file(metadata={"title": title}, content=content, dry_run=False)
+  for entry in entries:
+    dhaatu = entry.dhatu_entry.dhatu
+    dhaatu_str = dev(dhaatu.aupadeshika)
+    # dhaatu_str = "डुदाञ्"
+    # dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
+    content = ""
+    for kRt in Krt.choices():
+      anga = Pratipadika.krdanta(dhaatu, kRt)
+      prakriyaas = lookup_and_derive(anga)
+      if len(prakriyaas) == 0:
+        continue
+      content = f"{content}\n\n## {dhaatu_str} + {dev(str(kRt))}"
+      for result, prakriya_str in prakriyaas.items():
+        content += f"\n\n{prakriya_str.replace('##', '###')}"
+    title = f"{dhaatu_str} {dev(dhaatu.gana)}"
+    file_path = os.path.join(dest_dir, file_helper.get_storage_name(text=title) + ".md")
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    md_file = MdFile(file_path)
+    md_file.dump_to_file(metadata={"title": title}, content=content, dry_run=False)
 
 
 def derive_and_print_kRdanta():
@@ -207,6 +208,6 @@ if __name__ == '__main__':
   # lookup_and_derive("वेदानि", out_file_path=os.path.join(PRAKRIYA_BASE, "tiNantAni"), type=PadaEntry.Tinanta)
   # dump_subantas()
   # dump_tinantas(ref_pada="ददातु")
-  dump_kRdantas(ref_pada="ददातु")
+  dump_kRdantas(ref_pada="बृंहिता")
   pass
   
