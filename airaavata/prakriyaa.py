@@ -67,7 +67,7 @@ def get_prakriyaa_str(prakriyas):
       sutra = dev(code_to_sutra.get((step.source, step.code), "(??)"))
       if source == "अ":
         url = f"[A](https://ashtadhyayi.github.io/suutra/{step.code[:3]}/{step.code})"
-      result = dev(','.join(step.result))
+      result = dev(','.join([x.text for x in step.result]))
       detail = f"{source} {step.code} → {result} ({sutra} {url})"
       steps.append(detail)
     md_newline = '  \n'
@@ -205,9 +205,9 @@ def derive_and_print_kRdanta():
 if __name__ == '__main__':
   # derive_and_print_subanta()
   # derive_and_print_tinanta()
-  # lookup_and_derive("वेदानि", out_file_path=os.path.join(PRAKRIYA_BASE, "tiNantAni"), type=PadaEntry.Tinanta)
+  # lookup_and_derive("पद्ये", out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"), type=PadaEntry.Tinanta)
   # dump_subantas()
-  # dump_tinantas(ref_pada="ददातु")
-  dump_kRdantas(ref_pada="बृंहिता")
+  dump_tinantas(ref_pada="पद्ये")
+  # dump_kRdantas(ref_pada="बृंहिता")
   pass
   
