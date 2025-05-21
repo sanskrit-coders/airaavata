@@ -25,6 +25,8 @@ logging.basicConfig(
 
 
 PRAKRIYA_DHATU = "/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/dhAtu-prakriyA/prakriyAH"
+PRAKRIYA_SUP = "/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/prAtipadika-prakriyA/sup/prakriyA"
+
 DATA_PATH = "/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-data/data/build/vidyut-latest/"
 
 v = Vyakarana()
@@ -89,20 +91,38 @@ def derive_and_print_tinanta():
   lookup_and_derive(pada, out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"))
 
 
-def derive_and_print_subanta():
-  # pada = Pada.Subanta(
-  #   pratipadika=Pratipadika.basic(slp("सुमनस्")),
-  #   linga=Linga.Pum,
-  #   vibhakti=Vibhakti.Prathama,
-  #   vacana=Vacana.Eka,
-  # )
-  pada = Pada.Subanta(
-    pratipadika=Pratipadika.basic(slp("नदी")),
-    linga=Linga.Stri,
-    vibhakti=Vibhakti.Prathama,
-    vacana=Vacana.Eka,
-  )
-  lookup_and_derive(pada, out_file_path=os.path.join(PRAKRIYA_DHATU, "subantAni"))
+def derive_and_print_subanta(ref_pada, linga, vibhakti, vachana, type=None):
+  if type == "nyap":
+    pada = Pada.Subanta(
+      pratipadika=Pratipadika.nyap(slp(ref_pada)),
+      linga=linga,
+      vibhakti=vibhakti,
+      vacana=vachana,
+    )
+    lookup_and_derive(pada, out_file_path=PRAKRIYA_SUP)
+  elif type == "kRt":
+    entries = [x for x in kosha.get(slp(ref_pada)) if isinstance(x, PadaEntry.Tinanta)]
+    for entry in entries:
+      dhaatu = entry.dhatu_entry.dhatu
+      anga = Pratipadika.krdanta(dhaatu, Krt.kvip)
+      pada = Pada.Subanta(
+        pratipadika=anga,
+        linga=linga,
+        vibhakti=vibhakti,
+        vacana=vachana,
+      )
+      lookup_and_derive(pada, out_file_path=PRAKRIYA_SUP)
+
+  else:
+    pada = Pada.Subanta(
+      pratipadika=Pratipadika.basic(slp(ref_pada)),
+      linga=linga,
+      vibhakti=vibhakti,
+      vacana=vachana,
+    )
+    lookup_and_derive(pada, out_file_path=PRAKRIYA_SUP)
+
+
 
 
 def dump_subantas(dest_dir="/home/vvasuki/gitland/vishvAsa/sanskrit/content/vyAkaraNam/pANinIyam/prAtipadika-prakriyA/sup/prakriyA"):
@@ -203,11 +223,11 @@ def derive_and_print_kRdanta():
 
 
 if __name__ == '__main__':
-  # derive_and_print_subanta()
+  derive_and_print_subanta(ref_pada="श्रयति", type="kRt", linga=Linga.Stri, vibhakti=Vibhakti.Sasthi, vachana=Vacana.Eka)
   # derive_and_print_tinanta()
   # lookup_and_derive("पद्ये", out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"), type=PadaEntry.Tinanta)
   # dump_subantas()
-  dump_tinantas(ref_pada="पद्ये")
+  # dump_tinantas(ref_pada="पद्ये")
   # dump_kRdantas(ref_pada="बृंहिता")
   pass
   
