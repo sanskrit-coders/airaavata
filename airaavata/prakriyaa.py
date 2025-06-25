@@ -36,6 +36,17 @@ code_to_sutra = {(s.source, s.code): s.text for s in prakriya_data.load_sutras()
 # kosha = Kosha("/home/vvasuki/gitland/ambuda-org/vidyut/vidyut-data/data/build/vidyut-latest/kosha")
 kosha = Kosha(os.path.join(DATA_PATH, "kosha"))
 
+sanaadi_dict ={
+  '': (),
+  'Ric': (Sanadi.Ric,),
+  'san': (Sanadi.san,),
+  'yaN': (Sanadi.yaN,),
+  'yaN-luk': (Sanadi.yaNluk,),
+  'san-Ric': (Sanadi.san, Sanadi.Ric),
+  'Ric-san': (Sanadi.Ric, Sanadi.san)
+}
+
+
 
 def lookup_and_derive(shabda, type=None, out_file_path=None):
   if isinstance(shabda, str):
@@ -193,11 +204,13 @@ def dump_tinantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "tiNantAni")):
   md_file.dump_to_file(metadata={"title": title}, content=content, dry_run=False)
 
 
-def dump_kRdantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "kRdantAni")):
+def dump_kRdantas(ref_pada, dest_dir=os.path.join(PRAKRIYA_DHATU, "kRdantAni"), sanaadi_str=""):
   entries = [x for x in kosha.get(slp(ref_pada)) if isinstance(x, PadaEntry.Tinanta)]
   for entry in entries:
     dhaatu = entry.dhatu_entry.dhatu
-    dhaatu_str = dev(dhaatu.aupadeshika)
+    dhaatu = dhaatu.with_sanadi(sanaadi_dict[sanaadi_str])
+    
+    dhaatu_str = dev(f"{dhaatu.aupadeshika}(${sanaadi_str})")
     # dhaatu_str = "डुदाञ्"
     # dhaatu = Dhatu.mula(aupadeshika=slp(dhaatu_str), gana=Gana.Juhotyadi)
     content = ""
@@ -223,11 +236,11 @@ def derive_and_print_kRdanta():
 
 
 if __name__ == '__main__':
-  derive_and_print_subanta(ref_pada="श्रयति", type="kRt", linga=Linga.Stri, vibhakti=Vibhakti.Sasthi, vachana=Vacana.Eka)
+  # derive_and_print_subanta(ref_pada="काशते", type="kRt", linga=Linga.Stri, vibhakti=Vibhakti.Sasthi, vachana=Vacana.Eka)
   # derive_and_print_tinanta()
-  # lookup_and_derive("पद्ये", out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"), type=PadaEntry.Tinanta)
+  # lookup_and_derive("काशते", out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"), type=PadaEntry.Tinanta)
   # dump_subantas()
   # dump_tinantas(ref_pada="पद्ये")
-  # dump_kRdantas(ref_pada="बृंहिता")
+  dump_kRdantas(ref_pada="काशते", sanaadi_str="Ric")
   pass
   
