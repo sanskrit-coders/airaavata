@@ -241,6 +241,6 @@ if __name__ == '__main__':
   # lookup_and_derive("काशते", out_file_path=os.path.join(PRAKRIYA_DHATU, "tiNantAni"), type=PadaEntry.Tinanta)
   # dump_subantas()
   # dump_tinantas(ref_pada="पद्ये")
-  dump_kRdantas(ref_pada="काशते", sanaadi_str="Ric")
+  dump_kRdantas(ref_pada="डयते")
   pass
   
